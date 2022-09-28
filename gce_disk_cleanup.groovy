@@ -1,7 +1,9 @@
 projects = [
-            [name: "<project name>", creds: "<secret found in jenkins>", env: "dev", envup: "DEV", region: "europe-west1"]
+            [name: "unity-it-sandbox-test", creds: "unity-it-sandbox-test-creds", env: "dev", envup: "DEV", region: "europe-west1"],
+            [name: "unity-it-services-test", creds: "unity-it-services-test-creds", env: "test", envup: "TEST", region: "europe-west1"],
+            [name: "unity-it-infra-test", creds: "terraform-enterprise-gcp-sa", env: "test", envup: "TEST", region: "europe-west1"],
+            //[name: "unity-it-services-stg", creds: "unity-it-services-stg-sa-build", env: "stg", envup: "STG", region: "europe-west1"]
             ]
-
 zones    = [[name: "europe-west1-b"],[name: "europe-west1-c"], [name: "europe-west1-d"]]
 
 import java.text.SimpleDateFormat
