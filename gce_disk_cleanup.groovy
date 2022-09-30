@@ -1,11 +1,17 @@
-projects = [
-            [name: "<project name>", creds: "<secret found in jenkins>", env: "dev", envup: "DEV", region: "europe-west1"]
-            ]
-
-zones    = [[name: "europe-west1-b"],[name: "europe-west1-c"], [name: "europe-west1-d"]]
-
 import java.text.SimpleDateFormat
-def dateRange = 90 //This variable signifies the number of days the disk was detached for
+projects = [
+            [name: "unity-it-sandbox-test", creds: "unity-it-sandbox-test", env: "dev", envup: "DEV", region: "europe-west1"],
+            [name: "unity-it-services-test", creds: "serviceaccount-test", env: "test", envup: "TEST", region: "europe-west1"],
+            [name: "unity-it-infra-test", creds: "terraform-enterprise-gcp-sa", env: "test", envup: "TEST", region: "europe-west1"],
+            [name: "unity-it-services-stg", creds: "unity-it-services-stg-creds", env: "stg", envup: "STG", region: "europe-west1"],
+            [name: "unity-it-services-prd", creds: "unity-it-services-prd-creds", env: "prd", envup: "PRD", region: "europe-west1"],
+            [name: "unity-it-infra-stg", creds: "unity-it-infra-stg-creds", env: "stg", envup: "STG", region: "europe-west1"],
+            [name: "unity-it-infra-prd", creds: "unity-it-infra-prd-creds", env: "prd", envup: "PRD", region: "europe-west1"],
+            ]
+zones    = [[name: "europe-west1-b"],[name: "europe-west1-c"],[name: "europe-west1-d"]]
+deleted = [:]
+
+dateRange = 90                                                        //This variable signifies the number of days the disk was detached for
 
 pipeline {
   options {
@@ -24,13 +30,19 @@ pipeline {
         steps('instance deletion') {
               script{
                 date = first_delete_date()
-                for(int i=0; i < projects.size(); i++) { //Goes through each selected GCP project
+                for(int i=0; i < projects.size(); i++) {             //Goes through each selected GCP project
+                  totalDisksDeleted = 0                              //Intialize the number of disks to 0 at first
                   project = projects[i]
-                  for(int x=0; x < zones.size(); x++) { //Goes through each zones as we're using more than one for our disk resource
+                  for(int x=0; x < zones.size(); x++) {              //Goes through each zones as we're using more than one for our disk resource
                     zone = zones[x]
-                    echo ("Date to delete from (real): ${date}")
-                    userDeleteVM(project,date,zone)
+                    disksDeleted = userDeleteDisk(project,date,zone) //This takes the number of disks deleted per zone from the returned value disksArray.size() and stores it to disksDeleted
+                    totalDisksDeleted += disksDeleted                //DisksDeleted stores the total number of deleted disks from each zone within that one project 
                   }
+                  echo "deleted #$totalDisksDeleted in project ${project.name}"
+                  deleted[project.name] = totalDisksDeleted         //This creates a list based on the project name and the total number of disks deleted within that project.
+                }
+                wrap([$class: 'BuildUser']){                        //The slackbot will send the entire list to the user
+                slackSend channel: "@${env.BUILD_USER_ID}", message: "Total disks deleted per project $deleted", color: '#FF0000', tokenCredentialId: 'slack-integration'
                 }
               }
           }
@@ -52,8 +64,11 @@ def first_delete_date() {
 * It will trim the output of all newline and carriage return and replace with a space before storing into a variable as a string
 * The string will then be converted as a list so that it can be iterated one at a time
 * With every iteration taking place within the for loop, the list will go through a gcloud delete and remove each disk.
+* An IF statement is added so that when the list command outputs an empty string, we can break out of that loop thus avoid the failure
+* Whenever the list of disks are empty, it will take that into account and return a 0 back to line 34 or back to the function userDeleteDisk
+* Whenever there is a value to the number of disks, this will be returned via line 89 or the return disksArray.size() back to line 34 or userDeleteDisk and kept in totalDisksDeleted
 */
-def userDeleteVM(project,date,zone) {
+def userDeleteDisk(project,date,zone) {
   withCredentials([file(credentialsId: project["creds"], variable: 'creds')]){
   projectname = project.name
   zonename = zone.name
@@ -61,11 +76,20 @@ def userDeleteVM(project,date,zone) {
       script: """gcloud auth activate-service-account --key-file ${creds} && gcloud compute disks list --project=$projectname --format="table[no-heading](name)" --sort-by=lastDetachTimestamp --filter="-users:* AND lastDetachTimestamp.date()<$date AND zone~$zonename" """,
       returnStdout: true
   ).trim()
-  disksToList = disksToList.replaceAll("[\n\r]"," "); //removes return carriage and newline from output so we can turn this into a string rather than one output at a time
-  disksArray = disksToList.split(" ")
-  for(int y=0; y < disksArray.size(); y++) { //goes through each disk name
+  echo "${disksToList}"
+  if(disksToList == '') {
+      echo "Nothing to delete here! Moving on..."
+      return 0
+  }
+  else {
+    disksToList = disksToList.replaceAll("[\n\r]"," ");       //Removes return carriage and newline from output so we can turn this into a string rather than one output at a time
+    disksArray = disksToList.split(" ")
+   for (int y=0; y < disksArray.size(); y++) {                //Goes through each disk name
+      echo "the number of disks: ${disksArray.size()}"
       disk = disksArray[y]
-      deleteDisk = sh("""gcloud compute disks delete $disk --zone=$zonename""")
+      //deleteDisk = sh("""gcloud auth activate-service-account --key-file ${creds} && gcloud compute disks delete $disk --project=$projectname --zone=$zonename --quiet""") //using SA auth again because this is a new shell session
+      }
     }
+    return disksArray.size() 
   }
 }
