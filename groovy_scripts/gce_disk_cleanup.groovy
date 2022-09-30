@@ -1,12 +1,6 @@
 import java.text.SimpleDateFormat
 projects = [
-            [name: "unity-it-sandbox-test", creds: "unity-it-sandbox-test", env: "dev", envup: "DEV", region: "europe-west1"],
-            [name: "unity-it-services-test", creds: "serviceaccount-test", env: "test", envup: "TEST", region: "europe-west1"],
-            [name: "unity-it-infra-test", creds: "terraform-enterprise-gcp-sa", env: "test", envup: "TEST", region: "europe-west1"],
-            [name: "unity-it-services-stg", creds: "unity-it-services-stg-creds", env: "stg", envup: "STG", region: "europe-west1"],
-            [name: "unity-it-services-prd", creds: "unity-it-services-prd-creds", env: "prd", envup: "PRD", region: "europe-west1"],
-            [name: "unity-it-infra-stg", creds: "unity-it-infra-stg-creds", env: "stg", envup: "STG", region: "europe-west1"],
-            [name: "unity-it-infra-prd", creds: "unity-it-infra-prd-creds", env: "prd", envup: "PRD", region: "europe-west1"],
+            [name: "<project_name>", creds: "<SA>", env: "dev", envup: "DEV", region: "europe-west1"],
             ]
 zones    = [[name: "europe-west1-b"],[name: "europe-west1-c"],[name: "europe-west1-d"]]
 deleted = [:]
