@@ -1,11 +1,18 @@
 import java.text.SimpleDateFormat
 projects = [
-            [name: "<project_name>", creds: "<SA>", env: "dev", envup: "DEV", region: "europe-west1"],
+            [name: "unity-it-sandbox-test", creds: "unity-it-sandbox-test", env: "dev", envup: "DEV", region: "europe-west1"],
+            [name: "unity-it-services-test", creds: "serviceaccount-test", env: "test", envup: "TEST", region: "europe-west1"],
+            [name: "unity-it-services-stg", creds: "unity-it-services-stg-creds", env: "stg", envup: "STG", region: "europe-west1"],
+            [name: "unity-it-services-prd", creds: "unity-it-services-prd-creds", env: "prd", envup: "PRD", region: "europe-west1"],
+            [name: "unity-it-infra-test", creds: "terraform-enterprise-gcp-sa", env: "test", envup: "TEST", region: "europe-west1"],
+            [name: "unity-it-infra-stg", creds: "unity-it-infra-stg-creds", env: "stg", envup: "STG", region: "europe-west1"],
+            [name: "unity-it-infra-prd", creds: "unity-it-infra-prd-creds", env: "prd", envup: "PRD", region: "europe-west1"],
             ]
 zones    = [[name: "europe-west1-b"],[name: "europe-west1-c"],[name: "europe-west1-d"]]
-deleted = [:]
+deleted = [: ]
 
 dateRange = 90                                                        //This variable signifies the number of days the disk was detached for
+
 pipeline {
   options {
     disableConcurrentBuilds()
@@ -78,9 +85,8 @@ def userDeleteDisk(project,date,zone) {
     disksToList = disksToList.replaceAll("[\n\r]"," ");       //Removes return carriage and newline from output so we can turn this into a string rather than one output at a time
     disksArray = disksToList.split(" ")
    for (int y=0; y < disksArray.size(); y++) {                //Goes through each disk name
-      echo "the number of disks: ${disksArray.size()}"
       disk = disksArray[y]
-      //deleteDisk = sh("""gcloud auth activate-service-account --key-file ${creds} && gcloud compute disks delete $disk --project=$projectname --zone=$zonename --quiet""") //using SA auth again because this is a new shell session
+      deleteDisk = sh("""gcloud auth activate-service-account --key-file ${creds} && gcloud compute disks delete $disk --project=$projectname --zone=$zonename --quiet""") //using SA auth again because this is a new shell session
       }
     }
     return disksArray.size() 
