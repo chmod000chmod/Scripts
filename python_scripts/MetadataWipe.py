@@ -28,7 +28,7 @@ def dms_coordinates_to_dd_coordinates(coordinates, coordinates_ref):
 output_tags = []
 #path_of_directory = "/Users/anthony.thambiah/Documents/chmod000chmod/pictures"
 # path_of_directory_output = os.listdir(path_of_directory)
-path_of_directory = "/Users/anthony.thambiah/Documents/chmod000chmod/pictures/folder"
+path_of_directory = "/Users/anthony.thambiah/Documents/chmod000chmod/pictures/Test_folder"
 for file in os.listdir(path_of_directory):
    item = os.path.join(path_of_directory, file)
    print(item)
@@ -36,28 +36,25 @@ for file in os.listdir(path_of_directory):
       output = Image(item)
       # output_tags.append(dir(output))
       # print(dir(output))
-      #print(output.get("gps_latitude"))
       if output.has_exif == False:
-         print(f"{output}does not have exif metadata...SKIP!\n")
+         print(f"{output}\ndoes not have exif metadata...SKIP!\n")
          continue
       else: 
          print(f"Device information - Image {file}")
          print("----------------------------")
          print(f"Metadata?: {output.has_exif}")
-         #print(f"Make: {output.make}")
          print(f"Make: {output.get('make')}")
-         #print(f"Model: {output.model}")
          print(f"Model: {output.get('model')}")
          print(f"OS version: {output.get('software', 'Unknown')}")
-         print("----------------------------")
-         #print(f"picture was taken on: {output.datetime_original}\n")
          print(f"picture was taken on: {output.get('datetime_original')}")
+         if output.get('gps_longitude_ref') and output.get('gps_latitude_ref') == None:
+            gps_longitude_ref = 0 
+         print(f"Latitude: {output.get('gps_latitude')} {output.get('gps_latitude_ref')}")
+         print(f"Longitude: {output.get('gps_longitude')} {output.get('gps_longitude_ref')}")
+         #decimal_latitude = dms_coordinates_to_dd_coordinates(output.get('gps_latitude'), output.get('gps_latitude_ref'))
+         #decimal_longitude = dms_coordinates_to_dd_coordinates(output.get('gps_longitude'), output.get('gps_longitude_ref'))
          #print("----------------------------")
          #print(str(output.get("gps_latitude")) + " "+ str(output.get("gps_latitude_ref") ))
-         # print(f"Latitude: {output.gps_latitude} {output.gps_latitude_ref}")
-         # print(f"Longitude: {output.gps_longitude} {output.gps_longitude_ref}\n")
-         # decimal_latitude = dms_coordinates_to_dd_coordinates(output.gps_latitude, output.gps_latitude_ref)
-         # decimal_longitude = dms_coordinates_to_dd_coordinates(output.gps_longitude, output.gps_longitude_ref)
          # coordinates = (decimal_latitude, decimal_longitude)
          # location_info = rg.search(coordinates)[0]
          # location_info['country'] = pycountry.countries.get(alpha_2=location_info['cc'])
