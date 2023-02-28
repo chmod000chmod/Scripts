@@ -5,8 +5,9 @@ These are scripts I've worked on over my time as being a Developer.
 
 <details>
   <summary>Oncall Automation Tool</summary>
-  
-  view the code [here](https://github.com/chmod000chmod/Scripts/blob/main/groovy_scripts/Jenkinsfile.oncall): 
+  <br>
+ view the code [here](https://github.com/chmod000chmod/Scripts/blob/main/groovy_scripts/Jenkinsfile.oncall): 
+  </br>
 ![alt text](https://github.com/chmod000chmod/Scripts/blob/main/Diagrams/on_call_diagram.png "Logo Title Text 1")
   
 </details>
