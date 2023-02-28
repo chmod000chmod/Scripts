@@ -4,10 +4,13 @@ These are scripts I've worked on over my time as being a Developer.
 # Table of Contents
 
 <details>
-  <summary>Oncall Automation Tool</summary>
+  <summary>Oncall Automation Tool</summary>  
   <br>
- view the code [here](https://github.com/chmod000chmod/Scripts/blob/main/groovy_scripts/Jenkinsfile.oncall): 
+  View the code below:  
   </br>
+  
+  [Oncall Automation](https://github.com/chmod000chmod/Scripts/blob/main/groovy_scripts/JenkinsFileDeepFreezeGoldenImage.groovy) 
+  
 ![alt text](https://github.com/chmod000chmod/Scripts/blob/main/Diagrams/on_call_diagram.png "Logo Title Text 1")
   
 </details>
@@ -15,7 +18,7 @@ These are scripts I've worked on over my time as being a Developer.
 <details>
   <summary>Windows Deep Freeze</summary>  
   <br>
-  View the code below
+  View the code below:
   </br>
   
   [Golden image](https://github.com/chmod000chmod/Scripts/blob/main/groovy_scripts/JenkinsFileDeepFreezeGoldenImage.groovy)    
