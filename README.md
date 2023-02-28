@@ -12,9 +12,11 @@ These are scripts I've worked on over my time as being a Developer.
 </details>
 
 <details>
-  <summary>Windows Deep Freeze</summary>
+  <summary>Windows Deep Freeze</summary>  
+  <br>
+  View the code below
+  </br>
   
-  view the code below
   [Golden image](https://github.com/chmod000chmod/Scripts/blob/main/groovy_scripts/JenkinsFileDeepFreezeGoldenImage.groovy)    
   [Create image](https://github.com/chmod000chmod/Scripts/blob/main/groovy_scripts/JenkinsFileDeepFreezeCreate.groovy)    
   [Delete image](https://github.com/chmod000chmod/Scripts/blob/main/groovy_scripts/JenkinsFileDeepFreezeDeleteImage.groovy)  
