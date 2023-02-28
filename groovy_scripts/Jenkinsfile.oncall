@@ -1,0 +1,134 @@
+/* Steps to code functionality */
+/* This code runs initially on the Monday (APAC time) and updates the slack channel every 24 hours if there are any changes to the PagerDuty schedule.*/
+/* Please note that the source of truth is our PagerDuty schedule.*/
+/* Step 1 run the function to recieve the starting and ending date */
+/* Step 2 Get the names of the user's oncall from PageDuty */
+/* Step 3 Get the entire string from the SlackTopic in a slack channel */
+/* Step 4 Check both usernames from the SlackTopic and PagerDuty for differences */
+/* Step 5 If names are the same between both, do nothing. If different, update the channel*/
+import java.text.SimpleDateFormat
+dateRange = 1
+rm_sym = /(?-i:"<@|<@|>|")/ // Turns "<@person A>, <@person B>, <@person C>" to person A, person B, person C
+rm_q = /(?:\n\r|\"\")/
+pipeline {
+  options {
+    disableConcurrentBuilds()
+    timestamps ()
+    buildDiscarder(logRotator(numToKeepStr: '30', artifactNumToKeepStr: '30'))
+    timeout(time: 45, unit: 'MINUTES')
+  }    
+  agent {
+    label "jenkins-slave"
+  }
+  libraries {
+    lib('jenkins-shared-libary')
+  }
+  environment {
+      PAGER = credentials("pagerDutyApiKey")
+      SLACK = credentials("slackApiKey")
+  }
+  
+  stages {
+    stage('Deploy stage') {
+      steps {
+        script {
+            date_start = startingDate()
+            date_end = endingDate()
+            pager_duty = pagerDutyAPI(date_start,date_end)
+            users_from_slack_topic = slack_recieve_topic()
+            (pretext,validate_entry,defaultmessage) = checkUser(users_from_slack_topic)
+            postUser(pretext,validate_entry,pager_duty,defaultmessage)
+        }
+      }
+    }
+  }
+}
+/* This function is used to get the start date for the oncall rotation during said week */
+def startingDate() {
+  Date date = new Date();
+  def startOfSchedule = date
+  String current_date = new SimpleDateFormat("yyyy-MM-dd").format(startOfSchedule)
+  current_date_tz = current_date+"T08:00:00+09:00"
+  return current_date_tz
+}
+/* This function is used to get the endate date for the oncall rotation during said week */
+def endingDate() {
+  Date date = new Date();
+  def endOfSchedule = date + dateRange
+  String current_date = new SimpleDateFormat("yyyy-MM-dd").format(endOfSchedule)
+  current_date_tz = current_date+"T16:00:00+09:00"
+  return current_date_tz
+}
+/* This function is used to get the current oncall names from pagerDuty schedule using cURL*/
+/* We run a replaceAll to remove the email suffix */
+/* By doing so, we can use said names onto the slack topic */
+def pagerDutyAPI(date_start,date_end){
+    def usersFromPagerDutyArray = []
+    usersFromPagerDuty = sh(
+    script: """curl --silent --output --request GET --url 'https://api.pagerduty.com/schedules/{ID}/users?since=${date_start}&until=${date_end}' --header 'Accept: application/vnd.pagerduty+json;version=2' --header 'Authorization: Token token=${env.PAGER}' --header 'Content-Type: application/json'| jq '.users[].email'""",
+    returnStdout: true  
+  ).trim()
+    usersFromPagerDuty = usersFromPagerDuty.replaceAll('@domain.com','')
+    usersFromPagerDuty = usersFromPagerDuty.replaceAll('[\n\r]', ' ')
+    usersFromPagerDutyList = usersFromPagerDuty.split(" ")
+    for (int y=0; y < usersFromPagerDutyList.size(); y++){
+      tempUsersFromPagerDutyList = usersFromPagerDutyList[y]
+      tempUsersFromPagerDutyList = tempUsersFromPagerDutyList.replaceAll('"', '')
+      tempUsersFromPagerDutyList = "<@"+tempUsersFromPagerDutyList+">"
+      usersFromPagerDutyArray.add(tempUsersFromPagerDutyList)
+    }
+    usersFromPagerDutyArray = usersFromPagerDutyArray.swap(2, 0).swap(1, 2) // Swaping names so that it starts with APAC -> EMEA -> NA
+    return usersFromPagerDutyArray
+}
+/*This function is uses cURL to grab the names from the current slack topic and store it in the below variable*/
+def slack_recieve_topic(){
+  namesFromSlackTopic = sh(
+    script: """curl --silent --output --request GET --url 'https://slack.com/api/conversations.info?channel={SLACK_CHANNEL}&pretty=1' --header 'Authorization: Bearer ${env.SLACK}' --header 'Content-type: application/json; charset=utf-8'| jq '.channel.topic.value'""", 
+    returnStdout: true
+  ).trim()
+  namesFromSlackTopic = namesFromSlackTopic.replaceAll(rm_q,'') //removes the extra quotes which fails the slack message
+  return namesFromSlackTopic
+}
+/*This will update the slack topic with the output from the pagerDutyAPI() function */
+def slack_send(message){
+  postUsers = sh(
+    script: """curl -X POST -H 'Authorization: Bearer ${env.SLACK}' -H 'Content-type: application/json; charset=utf-8' --data '{"channel":"{SLACK_CHANNEL}","topic":$message}' https://slack.com/api/conversations.setTopic""",
+    returnStdout: true
+  ).trim()
+}
+/* This function will segregate by index the list of usernames acquired by the slack_recieve_topic() function
+   Index [0] signifies the usernames
+   Index [1] signifies the additional oncall text ex: xxxx Are Oncall help and advice from the IT team | https://confluence.com/display/IT/IT+Documentation */
+def checkUser(slackTopic){
+    def slackID_convertedArray = []
+    slackTopicList = slackTopic.split(" - ") //PLEASE DO NOT REMOVE THE "-" IN THE SLACK TOPIC!!!
+    slackTopicListPrefix = slackTopicList[0].split(":") //seperates "oncall:" and slack names by ":"
+    slackTopicListNames = slackTopicListPrefix[1].replaceAll(rm_sym,'').split(" ")
+    slackTopicListPrefix = slackTopicListPrefix[0] //This holds oncall: portion of the message
+    slackTopicListValue =  slackTopicList[1]
+    for (int y=0; y < slackTopicListNames.size(); y++) { 
+      slackID = slackTopicListNames[y]
+      slackID_convert = sh(
+        script: """curl --silent --output --request GET --url 'https://slack.com/api/users.info?user=$slackID&pretty=1' --header 'Authorization: Bearer ${env.SLACK}' --header 'Content-type: application/json; charset=utf-8'| jq '.user["name"]'""",
+        returnStdout: true
+      ).trim()
+      slackID_convert = slackID_convert.replaceAll('"', '')
+      slackID_convert = "<@"+slackID_convert+">"
+      slackID_convertedArray.add(slackID_convert)
+    }
+    return [slackTopicListPrefix, slackID_convertedArray, slackTopicListValue]
+}   
+/*This is a checking sequence that looks at both the usernames from the SlackTopic and the usernames from PagerDuty
+  If the names are different, this will trigger the slack_send()function that will send the names from PagerDuty onto the SlackTopic */
+def postUser(premsg,oldName,newName,message) {
+  resultNames = newName.findAll{name -> oldName.contains(name)}
+  if(resultNames.size() < 3){
+    println ("update to slack") 
+    newName = newName.join(' ') //this removes the square brackets for [name1,name2]
+    newMessage = premsg+":"+newName+" - "+message
+    slack_send(newMessage)
+  }
+  else {
+    println ("no need to update")
+  }
+}
